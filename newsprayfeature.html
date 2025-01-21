@@ -1,0 +1,490 @@
+{% schema %}
+{
+  "name": "Spray Paint Feature",
+  "settings": [
+    {
+      "type": "image_picker",
+      "id": "spray_paint_icon",
+      "label": "Spray Paint Icon"
+    },
+    {
+      "type": "range",
+      "id": "icon_size",
+      "min": 20,
+      "max": 100,
+      "step": 5,
+      "unit": "px",
+      "label": "Icon Size",
+      "default": 50
+    },
+    {
+      "type": "image_picker",
+      "id": "default_cursor",
+      "label": "Default Cursor Image"
+    },
+    {
+      "type": "image_picker",
+      "id": "spray_cursor_black",
+      "label": "Black Spray Paint Cursor Image"
+    },
+    {
+      "type": "image_picker",
+      "id": "spray_cursor_green",
+      "label": "Green Spray Paint Cursor Image"
+    },
+    {
+      "type": "image_picker",
+      "id": "spray_cursor_pink",
+      "label": "Pink Spray Paint Cursor Image"
+    },
+    {
+      "type": "range",
+      "id": "cursor_size",
+      "min": 16,
+      "max": 64,
+      "step": 4,
+      "unit": "px",
+      "label": "Cursor Size",
+      "default": 32
+    },
+    {
+      "type": "range",
+      "id": "money_sign_offset_x",
+      "min": -50,
+      "max": 50,
+      "step": 1,
+      "unit": "px",
+      "label": "Money Sign X Offset",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "money_sign_offset_y",
+      "min": -50,
+      "max": 50,
+      "step": 1,
+      "unit": "px",
+      "label": "Money Sign Y Offset",
+      "default": 0
+    },
+    {
+      "type": "range",
+      "id": "central_circle_radius",
+      "min": 5,
+      "max": 50,
+      "step": 1,
+      "unit": "px",
+      "label": "Central Circle Radius",
+      "default": 15
+    },
+    {
+      "type": "range",
+      "id": "outer_mist_radius",
+      "min": 20,
+      "max": 100,
+      "step": 1,
+      "unit": "px",
+      "label": "Outer Mist Radius",
+      "default": 40
+    },
+    {
+      "type": "range",
+      "id": "central_circle_opacity",
+      "min": 10,
+      "max": 100,
+      "step": 10,
+      "label": "Central Circle Opacity (%)",
+      "default": 100
+    },
+    {
+      "type": "range",
+      "id": "outer_mist_opacity",
+      "min": 0,
+      "max": 100,
+      "step": 10,
+      "label": "Outer Mist Opacity (%)",
+      "default": 30
+    }
+  ],
+  "presets": [
+    {
+      "name": "Spray Paint Feature",
+      "category": "Interactive"
+    }
+  ]
+}
+{% endschema %}
+
+<style>
+  #spray-paint-container-{{ section.id }} {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    z-index: 1000;
+  }
+
+  #color-picker-{{ section.id }} {
+    margin-top: 10px;
+  }
+
+  .color-btn {
+    width: 30px;
+    height: 30px;
+    border: none;
+    margin-right: 5px;
+    transition: transform 0.3s ease;
+  }
+
+  .color-btn.selected {
+    transform: scale(1.1);
+    box-shadow: 0 0 0 2px red;
+  }
+
+  #custom-cursor-{{ section.id }} {
+    position: fixed;
+    pointer-events: none;
+    z-index: 9999;
+    display: none;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    body.custom-cursor-active,
+    body.custom-cursor-active *,
+    body.custom-cursor-active *:hover,
+    body.custom-cursor-active a,
+    body.custom-cursor-active a:hover,
+    body.custom-cursor-active button,
+    body.custom-cursor-active button:hover,
+    body.custom-cursor-active input,
+    body.custom-cursor-active input:hover,
+    body.custom-cursor-active select,
+    body.custom-cursor-active select:hover,
+    body.custom-cursor-active [role="button"],
+    body.custom-cursor-active [role="button"]:hover {
+      cursor: none !important;
+    }
+
+    body.custom-cursor-active #custom-cursor-{{ section.id }} {
+      display: block !important;
+    }
+  }
+
+  .hide-money-trail .money-trail {
+    display: none !important;
+  }
+
+  .money-sign {
+    position: absolute;
+    font-size: 20px;
+    color: gold;
+    pointer-events: none;
+    animation: fallOut 1s forwards;
+    text-shadow: 0 0 2px silver;
+    font-family: 'Courier New', monospace, bold;
+    z-index: 9998;
+  }
+
+  @keyframes fallOut {
+    0% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    100% {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+  }
+</style>
+
+<div id="spray-paint-container-{{ section.id }}">
+  <button id="spray-paint-btn-{{ section.id }}" style="background: none; border: none;">
+    {% if section.settings.spray_paint_icon %}
+      {{ section.settings.spray_paint_icon | image_url: width: section.settings.icon_size | image_tag: width: section.settings.icon_size, height: section.settings.icon_size, alt: 'Spray Paint' }}
+    {% else %}
+      <svg width="{{ section.settings.icon_size }}" height="{{ section.settings.icon_size }}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M19 3H5C3.89543 3 3 3.89543 3 5V19C3 20.1046 3.89543 21 5 21H19C20.1046 21 21 20.1046 21 19V5C21 3.89543 20.1046 3 19 3Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M12 8V16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M8 12H16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    {% endif %}
+  </button>
+  <div id="color-picker-{{ section.id }}" style="display: none;">
+    <button class="color-btn" data-color="#000000" data-cursor="black" style="background-color: #000000;"></button>
+    <button class="color-btn" data-color="#00FF00" data-cursor="green" style="background-color: #00FF00;"></button>
+    <button class="color-btn" data-color="#FF1493" data-cursor="pink" style="background-color: #FF1493;"></button>
+  </div>
+</div>
+
+<canvas id="spray-paint-canvas-{{ section.id }}" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 999;"></canvas>
+
+<img id="custom-cursor-{{ section.id }}" src="{{ section.settings.default_cursor | img_url: 'master' }}" alt="Custom Cursor">
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/paper.js/0.12.15/paper-full.min.js"></script>
+<script>
+  (function() {
+    var sectionId = "{{ section.id }}";
+    var canvas = document.getElementById('spray-paint-canvas-' + sectionId);
+    var sprayPaintBtn = document.getElementById('spray-paint-btn-' + sectionId);
+    var colorPicker = document.getElementById('color-picker-' + sectionId);
+    var colorBtns = colorPicker.querySelectorAll('.color-btn');
+    var customCursor = document.getElementById('custom-cursor-' + sectionId);
+    var isDrawing = false;
+    var currentColor = '#000000';
+    var cursorSize = {{ section.settings.cursor_size }};
+    var moneySignOffsetX = {{ section.settings.money_sign_offset_x }};
+    var moneySignOffsetY = {{ section.settings.money_sign_offset_y }};
+    var isDefaultCursor = false;
+
+    // New settings from schema
+    var centralCircleRadius = {{ section.settings.central_circle_radius }};
+    var outerMistRadius = {{ section.settings.outer_mist_radius }};
+    var centralCircleOpacity = {{ section.settings.central_circle_opacity }} / 100;
+    var outerMistOpacity = {{ section.settings.outer_mist_opacity }} / 100;
+
+    var cursorImages = {
+      default: "{{ section.settings.default_cursor | img_url: 'master' }}",
+      black: "{{ section.settings.spray_cursor_black | img_url: 'master' }}",
+      green: "{{ section.settings.spray_cursor_green | img_url: 'master' }}",
+      pink: "{{ section.settings.spray_cursor_pink | img_url: 'master' }}"
+    };
+
+    var isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+    paper.setup(canvas);
+
+    // Define a function to create a gradient based on the current color and opacities
+    function getGradient(color, centralOpacity, outerOpacity) {
+      return {
+        stops: [
+          [new paper.Color({ hue: color.hue, saturation: color.saturation, brightness: color.brightness, alpha: centralOpacity }), 0],
+          [new paper.Color({ hue: color.hue, saturation: color.saturation, brightness: color.brightness, alpha: outerOpacity }), 1]
+        ],
+        radial: true
+      };
+    }
+
+    // Function to create the blurred circle symbol
+    function createBlurredCircleSymbol() {
+      // Create the blurred circle with outer mist
+      var blurredCircle = new paper.Path.Circle({
+        center: [0, 0],
+        radius: outerMistRadius, // Use outerMistRadius here
+        insert: false
+      });
+
+      // Convert currentColor string to paper.Color object
+      var color = new paper.Color(currentColor);
+
+      // Apply the gradient fill to the circle
+      blurredCircle.fillColor = {
+        gradient: getGradient(color, centralCircleOpacity, outerMistOpacity),
+        origin: blurredCircle.position,
+        destination: blurredCircle.bounds.rightCenter
+      };
+
+      // Create a symbol definition for optimization
+      blurredCircleDef = new paper.SymbolDefinition(blurredCircle);
+    }
+
+    var blurredCircleDef;
+    createBlurredCircleSymbol();
+
+    function initSprayPaint() {
+      canvas.style.pointerEvents = 'auto';
+      isDrawing = true;
+      colorPicker.style.display = 'block';
+      document.body.classList.add('hide-money-trail');
+      if (!isMobile) {
+        setCursorImage(cursorImages.black);
+      }
+    }
+
+    function stopSprayPaint() {
+      canvas.style.pointerEvents = 'none';
+      isDrawing = false;
+      colorPicker.style.display = 'none';
+      document.body.classList.remove('hide-money-trail');
+      if (!isMobile) {
+        setDefaultCursor();
+      }
+      resetDripTimer(); // Reset drip timer when painting stops
+    }
+
+    function setCursorImage(imageUrl) {
+      if (isMobile) return;
+      customCursor.src = imageUrl;
+      customCursor.style.width = cursorSize + 'px';
+      customCursor.style.height = 'auto';
+      document.body.classList.add('custom-cursor-active');
+      isDefaultCursor = (imageUrl === cursorImages.default);
+    }
+
+    function setDefaultCursor() {
+      setCursorImage(cursorImages.default);
+    }
+
+    var paintLayer = new paper.Layer();
+    var sprayGroup = new paper.Group();
+    paintLayer.addChild(sprayGroup);
+
+    // Create the tool and set min/max distance
+    var tool = new paper.Tool();
+    tool.minDistance = 5;
+    tool.maxDistance = 5;
+
+    // Variables for drip effect
+    var dripTimer = 0;
+    var dripInterval = 7000; // 7000 milliseconds = 7 seconds
+    var lastDripTime = 0;
+
+    function resetDripTimer() {
+      dripTimer = 0;
+      lastDripTime = 0;
+    }
+
+    function createDrip(point) {
+      // Create a path starting at the drip point
+      var dripPath = new paper.Path({
+        segments: [point],
+        strokeColor: currentColor,
+        strokeWidth: 5,
+        strokeCap: 'round'
+      });
+      var dripGroup = new paper.Group([dripPath]);
+      paintLayer.addChild(dripGroup);
+
+      dripGroup.onFrame = function(event) {
+        // Add a new point slightly below the last point to extend the drip
+        var lastPoint = dripPath.lastSegment.point;
+        var newPoint = lastPoint.add([0, 2]); // Move down by 2 pixels
+        dripPath.add(newPoint);
+
+        // Optional: Add some randomness to the drip path for realism
+        // newPoint.x += (Math.random() - 0.5) * 1; // Slight horizontal wobble
+
+        // Remove this line so the drip remains on the canvas
+        // if (newPoint.y > paper.view.size.height + 50) {
+        //   dripGroup.remove(); // Remove drip when off-screen
+        // }
+      };
+    }
+
+    function sprayPaint(event) {
+      var symbolItem = new paper.SymbolItem(blurredCircleDef);
+      symbolItem.position = event.point;
+      sprayGroup.addChild(symbolItem);
+
+      // Optional: Rasterize to optimize performance
+      if (sprayGroup.children.length > 200) {
+        var raster = sprayGroup.rasterize(paper.view.resolution, false);
+        paintLayer.addChild(raster);
+        sprayGroup.remove();
+        sprayGroup = new paper.Group();
+        paintLayer.addChild(sprayGroup);
+      }
+
+      // Drip effect logic
+      var currentTime = Date.now();
+      if (lastDripTime === 0) {
+        lastDripTime = currentTime;
+      }
+
+      dripTimer += currentTime - lastDripTime;
+      lastDripTime = currentTime;
+
+      if (dripTimer >= dripInterval) {
+        dripTimer = 0;
+        createDrip(event.point);
+      }
+    }
+
+    sprayPaintBtn.addEventListener('click', function() {
+      if (isDrawing) {
+        stopSprayPaint();
+      } else {
+        initSprayPaint();
+      }
+    });
+
+    colorBtns.forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        currentColor = this.dataset.color;
+        var cursorImage = cursorImages[this.dataset.cursor];
+        if (!isMobile) {
+          setCursorImage(cursorImage);
+        }
+
+        colorBtns.forEach(function(b) {
+          b.classList.remove('selected');
+        });
+
+        this.classList.add('selected');
+
+        // Update the blurred circle symbol with new color
+        createBlurredCircleSymbol();
+      });
+    });
+
+    // Money sign feature
+    let lastSpawnTime = 0;
+    const spawnInterval = 10; // Minimum time between spawns in milliseconds
+
+    function createMoneySign(e) {
+      if (!isDefaultCursor) return; // Ensure money signs appear when default cursor is active
+
+      const currentTime = Date.now();
+      if (currentTime - lastSpawnTime < spawnInterval) return;
+      lastSpawnTime = currentTime;
+
+      const moneySign = document.createElement("span");
+      moneySign.textContent = "$";
+      moneySign.classList.add("money-sign");
+      moneySign.style.left = `${e.clientX + moneySignOffsetX}px`;
+      moneySign.style.top = `${e.clientY + moneySignOffsetY}px`;
+      document.body.appendChild(moneySign);
+
+      setTimeout(() => {
+        moneySign.remove();
+      }, 1000);
+    }
+
+    document.addEventListener('mousemove', function(e) {
+      if (!isMobile) {
+        customCursor.style.left = (e.clientX - cursorSize / 2) + 'px';
+        customCursor.style.top = (e.clientY - cursorSize / 2) + 'px';
+      }
+      createMoneySign(e); // Ensure money signs appear regardless of device
+    });
+
+    document.addEventListener('keydown', function(event) {
+      if (event.key === 'Escape') {
+        stopSprayPaint();
+      }
+    });
+
+    tool.onMouseDown = function(event) {
+      if (!isDrawing) return;
+      sprayPaint(event);
+    };
+
+    tool.onMouseDrag = function(event) {
+      if (!isDrawing) return;
+      sprayPaint(event);
+    };
+
+    tool.onMouseUp = function(event) {
+      if (!isDrawing) return;
+      resetDripTimer(); // Reset drip timer when mouse is released
+    };
+
+    // Initialize with default cursor if not on mobile
+    if (!isMobile) {
+      setDefaultCursor();
+      customCursor.style.display = 'block';
+      document.body.classList.add('custom-cursor-active');
+    }
+
+    paper.view.onFrame = null;
+    paper.view.draw();
+  })();
+</script>
